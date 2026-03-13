@@ -949,7 +949,8 @@ def get_inspect_command_namespace_string(node: Node, test_name: str) -> str:
 
 def calculate_must_gather_timer(test_start_time):
     if test_start_time > 0:
-        return int(datetime.datetime.now().strftime("%s")) - test_start_time
+        # Add 5-minute (300s) buffer to work around must-gather timing issues
+        return int(datetime.datetime.now().strftime("%s")) - test_start_time + 300
     else:
         LOGGER.warning(f"Could not get start time of test. Collecting must-gather for last {TIMEOUT_5MIN}s")
         return TIMEOUT_5MIN
