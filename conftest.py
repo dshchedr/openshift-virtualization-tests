@@ -715,20 +715,12 @@ def pytest_fixture_setup(fixturedef, request):
 
                     # Check if module start time already exists
                     existing_time = db.get_module_start_time(module_name=module_name)
-                    if existing_time:
-                        LOGGER.info(
-                            f"[DATA_COLLECTOR] Module {module_name} start time already recorded: {existing_time}, "
-                            f"keeping same timestamp (fixture: {fixturedef.argname})"
-                        )
-                    else:
+                    if not existing_time:
                         db.insert_module_start_time(
                             module_name=module_name,
                             start_time=current_time,
                         )
-                        LOGGER.info(
-                            f"[DATA_COLLECTOR] Recorded NEW module start time for {module_name}: {current_time} "
-                            f"(fixture: {fixturedef.argname})"
-                        )
+                        LOGGER.info(f"[DATA_COLLECTOR] Module start time recorded: {current_time}")
         except Exception as db_exception:
             LOGGER.warning(f"Failed to track module start time in fixture setup: {db_exception}")
 
@@ -977,16 +969,8 @@ def pytest_exception_interact(node: Item | Collector, call: CallInfo[Any], repor
                     module_start_time = db.get_module_start_time(module_name=module_name)
                     if module_start_time:
                         test_start_time = module_start_time
-                        current_time = int(datetime.datetime.now().strftime("%s"))
-                        time_delta = current_time - module_start_time
-                        LOGGER.info(
-                            f"[DATA_COLLECTOR] Using MODULE-SCOPED collection for {test_name}\n"
-                            f"  Module: {module_name}\n"
-                            f"  Start timestamp: {module_start_time}\n"
-                            f"  Current timestamp: {current_time}\n"
-                            f"  Time delta: {time_delta}s ({time_delta // 60}m {time_delta % 60}s)\n"
-                            f"  Will collect logs from last {time_delta} seconds"
-                        )
+                        time_delta = int(datetime.datetime.now().strftime("%s")) - module_start_time
+                        LOGGER.info(f"[DATA_COLLECTOR] MODULE scope: {time_delta}s ({time_delta // 60}m)")
                     else:
                         # Fallback if module start time not found
                         test_start_time = 0
@@ -994,15 +978,8 @@ def pytest_exception_interact(node: Item | Collector, call: CallInfo[Any], repor
                 else:
                     # Default behavior: use individual test start time
                     test_start_time = db.get_test_start_time(test_name=test_name)
-                    current_time = int(datetime.datetime.now().strftime("%s"))
-                    time_delta = current_time - test_start_time
-                    LOGGER.info(
-                        f"[DATA_COLLECTOR] Using TEST-SCOPED collection for {test_name}\n"
-                        f"  Start timestamp: {test_start_time}\n"
-                        f"  Current timestamp: {current_time}\n"
-                        f"  Time delta: {time_delta}s ({time_delta // 60}m {time_delta % 60}s)\n"
-                        f"  Will collect logs from last {time_delta} seconds"
-                    )
+                    time_delta = int(datetime.datetime.now().strftime("%s")) - test_start_time
+                    LOGGER.info(f"[DATA_COLLECTOR] TEST scope: {time_delta}s ({time_delta // 60}m)")
             except Exception as db_exception:
                 test_start_time = 0
                 LOGGER.warning(f"Error: {db_exception} in accessing database.")
