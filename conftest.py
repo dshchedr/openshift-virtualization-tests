@@ -707,20 +707,17 @@ def pytest_fixture_setup(fixturedef, request):
             # Get the module from the requesting node
             if hasattr(request, "node") and hasattr(request.node, "get_closest_marker"):
                 scope_marker = request.node.get_closest_marker(name="data_collector_scope")
-                if scope_marker and scope_marker.args and scope_marker.args[0] == "module":
+                if scope_marker and scope_marker.kwargs.get("scope") == "module":
                     # Record module start time on first fixture execution in this module
                     module_name = str(request.node.fspath)
                     current_time = int(datetime.datetime.now().strftime("%s"))
                     db = Database(base_dir=request.config.getoption("--data-collector-output-dir"))
 
-                    # Check if module start time already exists
-                    existing_time = db.get_module_start_time(module_name=module_name)
-                    if not existing_time:
-                        db.insert_module_start_time(
-                            module_name=module_name,
-                            start_time=current_time,
-                        )
-                        LOGGER.info(f"[DATA_COLLECTOR] Module start time recorded: {current_time}")
+                    db.insert_module_start_time(
+                        module_name=module_name,
+                        start_time=current_time,
+                    )
+                    LOGGER.info(f"[DATA_COLLECTOR] Module start time recorded: {current_time}")
         except Exception as db_exception:
             LOGGER.warning(f"Failed to track module start time in fixture setup: {db_exception}")
 
@@ -736,7 +733,7 @@ def pytest_runtest_setup(item):
         try:
             # Check if module has data_collector_scope marker set to "module"
             scope_marker = item.get_closest_marker(name="data_collector_scope")
-            if not (scope_marker and scope_marker.args and scope_marker.args[0] == "module"):
+            if not (scope_marker and scope_marker.kwargs.get("scope") == "module"):
                 # Only record test start time if NOT using module-scoped collection
                 # (module start time is recorded in pytest_fixture_setup)
                 db = Database(base_dir=item.config.getoption("--data-collector-output-dir"))
@@ -963,7 +960,7 @@ def pytest_exception_interact(node: Item | Collector, call: CallInfo[Any], repor
 
                 # Check if module has data_collector_scope marker set to "module"
                 scope_marker = node.get_closest_marker(name="data_collector_scope")
-                if scope_marker and scope_marker.args and scope_marker.args[0] == "module":
+                if scope_marker and scope_marker.kwargs.get("scope") == "module":
                     # Use module start time for data collection
                     module_name = str(node.fspath)
                     module_start_time = db.get_module_start_time(module_name=module_name)
