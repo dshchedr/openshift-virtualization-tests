@@ -701,26 +701,6 @@ def pytest_runtest_makereport(item, call):
 def pytest_fixture_setup(fixturedef, request):
     LOGGER.info(f"Executing {fixturedef.scope} fixture: {fixturedef.argname}")
 
-    # Track module start time for data collection when module has the marker
-    if request.config.getoption("--data-collector"):
-        try:
-            # Get the module from the requesting node
-            if hasattr(request, "node") and hasattr(request.node, "get_closest_marker"):
-                scope_marker = request.node.get_closest_marker(name="data_collector_scope")
-                if scope_marker and scope_marker.kwargs.get("scope") == "module":
-                    # Record module start time on first fixture execution in this module
-                    module_name = str(request.node.fspath)
-                    current_time = int(datetime.datetime.now().strftime("%s"))
-                    db = Database(base_dir=request.config.getoption("--data-collector-output-dir"))
-
-                    db.insert_module_start_time(
-                        module_name=module_name,
-                        start_time=current_time,
-                    )
-                    LOGGER.info(f"[DATA_COLLECTOR] Module start time recorded: {current_time}")
-        except Exception as db_exception:
-            LOGGER.warning(f"Failed to track module start time in fixture setup: {db_exception}")
-
 
 def pytest_runtest_setup(item):
     """
@@ -731,12 +711,17 @@ def pytest_runtest_setup(item):
     if item.config.getoption("--data-collector"):
         # before the setup work starts, insert current epoch time into the database
         try:
-            # Check if module has data_collector_scope marker set to "module"
+            db = Database(base_dir=item.config.getoption("--data-collector-output-dir"))
             scope_marker = item.get_closest_marker(name="data_collector_scope")
-            if not (scope_marker and scope_marker.kwargs.get("scope") == "module"):
-                # Only record test start time if NOT using module-scoped collection
-                # (module start time is recorded in pytest_fixture_setup)
-                db = Database(base_dir=item.config.getoption("--data-collector-output-dir"))
+
+            if scope_marker and scope_marker.kwargs.get("scope") == "module":
+                # Record module start time (only inserts if doesn't exist - first test only)
+                db.insert_module_start_time(
+                    module_name=str(item.fspath),
+                    start_time=int(datetime.datetime.now().strftime("%s")),
+                )
+            else:
+                # Record individual test start time
                 db.insert_test_start_time(
                     test_name=f"{item.fspath}::{item.name}",
                     start_time=int(datetime.datetime.now().strftime("%s")),
