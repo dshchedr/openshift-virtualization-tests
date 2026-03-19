@@ -42,6 +42,8 @@ from utilities.constants import (
 from utilities.data_collector import (
     collect_default_cnv_must_gather_with_vm_gather,
     get_data_collector_dir,
+    get_scope_identifier,
+    get_test_start_time_for_collection,
     set_data_collector_directory,
     set_data_collector_values,
 )
@@ -715,16 +717,7 @@ def pytest_runtest_setup(item):
             scope_marker = item.get_closest_marker(name="data_collector_scope")
             scope_value = scope_marker.kwargs.get("scope") if scope_marker else None
 
-            if scope_value == "module":
-                # Record module start time (first test in file)
-                name = str(item.fspath)
-            elif scope_value == "class":
-                # Record class start time (first test in class)
-                name = f"{item.fspath}::{item.parent.name}" if item.parent else str(item.fspath)
-            else:
-                # Record individual test start time
-                name = f"{item.fspath}::{item.name}"
-
+            name, _ = get_scope_identifier(node=item, scope_value=scope_value)
             db.insert_start_time(name=name, start_time=int(datetime.datetime.now().strftime("%s")))
         except Exception as db_exception:
             LOGGER.error(f"[DATA_COLLECTOR] Database error: {db_exception}. Must-gather collection may not be accurate")
@@ -942,33 +935,10 @@ def pytest_exception_interact(node: Item | Collector, call: CallInfo[Any], repor
                 f"[DATA_COLLECTOR] Must-gather collection would be skipped for exception: {call.excinfo.type}"
             )
         else:
-            try:
-                db = Database(base_dir=node.config.getoption("--data-collector-output-dir"))
-
-                # Check data_collector_scope marker
-                scope_marker = node.get_closest_marker(name="data_collector_scope")
-                scope_value = scope_marker.kwargs.get("scope") if scope_marker else None
-
-                if scope_value == "module":
-                    name = str(node.fspath)
-                    scope_label = "MODULE"
-                elif scope_value == "class":
-                    name = f"{node.fspath}::{node.parent.name}" if node.parent else str(node.fspath)
-                    scope_label = "CLASS"
-                else:
-                    name = f"{node.fspath}::{node.name}"
-                    scope_label = "TEST"
-
-                test_start_time = db.get_start_time(name=name)
-                if test_start_time:
-                    time_delta = int(datetime.datetime.now().strftime("%s")) - test_start_time
-                    LOGGER.info(f"[DATA_COLLECTOR] {scope_label} scope: {time_delta}s ({time_delta // 60}m)")
-                else:
-                    test_start_time = 0
-                    LOGGER.warning(f"[DATA_COLLECTOR] Start time not found for {name}")
-            except Exception as db_exception:
-                test_start_time = 0
-                LOGGER.warning(f"[DATA_COLLECTOR] Error: {db_exception} in accessing database.")
+            test_start_time = get_test_start_time_for_collection(
+                node=node,
+                data_collector_output_dir=node.config.getoption("--data-collector-output-dir"),
+            )
 
             try:
                 collection_dir = os.path.join(get_data_collector_dir(), "pytest_exception_interact")
