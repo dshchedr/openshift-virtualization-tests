@@ -65,7 +65,7 @@ class Database:
             )
             return result[0] if result else None
 
-    def get_start_time_for_collection(self, node):
+    def get_start_time_for_collection(self, node) -> int:
         """
         Get test start time based on data_collector_scope marker.
 
@@ -76,7 +76,7 @@ class Database:
             node: Pytest node (Item or Collector).
 
         Returns:
-            int: Start time in seconds since epoch, or 0 if not found.
+            Start time in seconds since epoch, or 0 if not found.
         """
         try:
             # Check data_collector_scope marker

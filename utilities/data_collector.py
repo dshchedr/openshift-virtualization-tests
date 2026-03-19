@@ -180,18 +180,18 @@ def prepare_pytest_item_data_dir(item, output_dir):
     return item_dir_log
 
 
-def get_scope_identifier(node, scope_value):
+def get_scope_identifier(node, scope_value: str | None) -> tuple[str, str]:
     """
     Get the identifier name and label based on data collection scope.
 
     Args:
         node: Pytest node (Item or Collector).
-        scope_value (str | None): Scope value from marker ("module", "class", or None for test).
+        scope_value: Scope value from marker ("module", "class", or None for test).
 
     Returns:
-        tuple: (identifier_name, scope_label)
-            - identifier_name (str): Database key for this scope
-            - scope_label (str): Human-readable label for logging
+        Tuple of (identifier_name, scope_label):
+            - identifier_name: Database key for this scope
+            - scope_label: Human-readable label for logging
     """
     if scope_value == "module":
         return str(node.fspath), "MODULE"
