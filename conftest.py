@@ -43,7 +43,6 @@ from utilities.data_collector import (
     collect_default_cnv_must_gather_with_vm_gather,
     get_data_collector_dir,
     get_scope_identifier,
-    get_test_start_time_for_collection,
     set_data_collector_directory,
     set_data_collector_values,
 )
@@ -935,10 +934,8 @@ def pytest_exception_interact(node: Item | Collector, call: CallInfo[Any], repor
                 f"[DATA_COLLECTOR] Must-gather collection would be skipped for exception: {call.excinfo.type}"
             )
         else:
-            test_start_time = get_test_start_time_for_collection(
-                node=node,
-                data_collector_output_dir=node.config.getoption("--data-collector-output-dir"),
-            )
+            db = Database(base_dir=node.config.getoption("--data-collector-output-dir"))
+            test_start_time = db.get_start_time_for_collection(node=node)
 
             try:
                 collection_dir = os.path.join(get_data_collector_dir(), "pytest_exception_interact")

@@ -1,9 +1,10 @@
+import datetime
 import logging
 
 from sqlalchemy import Integer, String, create_engine
 from sqlalchemy.orm import DeclarativeBase, Mapped, Session, mapped_column
 
-from utilities.data_collector import get_data_collector_base
+from utilities.data_collector import get_data_collector_base, get_scope_identifier
 
 LOGGER = logging.getLogger(__name__)
 
@@ -63,3 +64,36 @@ class Database:
                 db_session.query(CnvTestTable).with_entities(CnvTestTable.start_time).filter_by(test_name=name).first()
             )
             return result[0] if result else None
+
+    def get_start_time_for_collection(self, node):
+        """
+        Get test start time based on data_collector_scope marker.
+
+        Determines the appropriate scope (test, class, or module) from the marker,
+        retrieves the start time from the database, and logs the time delta.
+
+        Args:
+            node: Pytest node (Item or Collector).
+
+        Returns:
+            int: Start time in seconds since epoch, or 0 if not found.
+        """
+        try:
+            # Check data_collector_scope marker
+            scope_marker = node.get_closest_marker(name="data_collector_scope")
+            scope_value = scope_marker.kwargs.get("scope") if scope_marker else None
+
+            name, scope_label = get_scope_identifier(node=node, scope_value=scope_value)
+
+            test_start_time = self.get_start_time(name=name)
+            if test_start_time:
+                time_delta = int(datetime.datetime.now().strftime("%s")) - test_start_time
+                LOGGER.info(f"[DATA_COLLECTOR] {scope_label} scope: {time_delta}s ({time_delta // 60}m)")
+            else:
+                test_start_time = 0
+                LOGGER.warning(f"[DATA_COLLECTOR] Start time not found for {name}")
+        except Exception as db_exception:
+            test_start_time = 0
+            LOGGER.warning(f"[DATA_COLLECTOR] Error: {db_exception} in accessing database.")
+
+        return test_start_time
