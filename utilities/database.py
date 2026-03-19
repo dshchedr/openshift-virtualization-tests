@@ -1,6 +1,8 @@
 import datetime
 import logging
 
+from _pytest.nodes import Collector
+from pytest import Item
 from sqlalchemy import Integer, String, create_engine
 from sqlalchemy.orm import DeclarativeBase, Mapped, Session, mapped_column
 
@@ -65,7 +67,7 @@ class Database:
             )
             return result[0] if result else None
 
-    def get_start_time_for_collection(self, node) -> int:
+    def get_start_time_for_collection(self, node: Item | Collector) -> int:
         """
         Get test start time based on data_collector_scope marker.
 

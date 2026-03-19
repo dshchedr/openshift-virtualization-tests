@@ -4,8 +4,10 @@ import os
 import shlex
 from functools import cache
 
+from _pytest.nodes import Collector
 from ocp_resources.namespace import Namespace
 from ocp_utilities.monitoring import Prometheus
+from pytest import Item
 from pytest_testconfig import config as py_config
 
 import utilities.hco
@@ -180,7 +182,7 @@ def prepare_pytest_item_data_dir(item, output_dir):
     return item_dir_log
 
 
-def get_scope_identifier(node, scope_value: str | None) -> tuple[str, str]:
+def get_scope_identifier(node: Item | Collector, scope_value: str | None) -> tuple[str, str]:
     """
     Get the identifier name and label based on data collection scope.
 
