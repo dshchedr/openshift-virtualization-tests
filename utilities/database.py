@@ -85,7 +85,8 @@ class Database:
             scope_marker = node.get_closest_marker(name="data_collector_scope")
             scope_value = scope_marker.kwargs.get("scope") if scope_marker else None
 
-            name, scope_label = get_scope_identifier(node=node, scope_value=scope_value)
+            name = get_scope_identifier(node=node, scope_value=scope_value)
+            scope_label = scope_value.upper() if scope_value else "TEST"
 
             test_start_time = self.get_start_time(name=name)
             if test_start_time:

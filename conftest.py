@@ -716,7 +716,7 @@ def pytest_runtest_setup(item):
             scope_marker = item.get_closest_marker(name="data_collector_scope")
             scope_value = scope_marker.kwargs.get("scope") if scope_marker else None
 
-            name, _ = get_scope_identifier(node=item, scope_value=scope_value)
+            name = get_scope_identifier(node=item, scope_value=scope_value)
             db.insert_start_time(name=name, start_time=int(datetime.datetime.now().strftime("%s")))
         except Exception as db_exception:
             LOGGER.error(f"[DATA_COLLECTOR] Database error: {db_exception}. Must-gather collection may not be accurate")
