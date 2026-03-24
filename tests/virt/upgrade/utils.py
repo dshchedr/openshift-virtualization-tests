@@ -16,6 +16,7 @@ from utilities.constants import (
     TIMEOUT_3MIN,
     TIMEOUT_10SEC,
     TIMEOUT_180MIN,
+    VIRT_LAUNCHER,
 )
 from utilities.exceptions import ResourceMissingFieldError
 from utilities.virt import (
@@ -26,6 +27,13 @@ from utilities.virt import (
 LOGGER = logging.getLogger(__name__)
 
 TIMESTAMP_FORMAT = "%Y-%m-%dT%H:%M:%SZ"
+
+
+def get_virt_launcher_image_from_csv(csv):
+    for item in csv.instance.spec.relatedImages:
+        if VIRT_LAUNCHER in item["name"]:
+            return item["image"]
+    raise ValueError(f"Image digest for {VIRT_LAUNCHER} not found")
 
 
 def verify_vms_ssh_connectivity(vms_list):
