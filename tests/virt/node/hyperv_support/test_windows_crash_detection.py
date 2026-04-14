@@ -1,3 +1,7 @@
+"""
+Windows crash detection with hyperv panic device
+"""
+
 import logging
 
 import pytest
@@ -99,4 +103,17 @@ def test_windows_crash_detection_with_hyperv_panic(
     windows_vm_with_panic_device,
     windows_crashed,
 ):
+    """Test that KubeVirt detects Windows guest crash via Hyper-V panic device.
+
+    Preconditions:
+        - PanicDevices feature gate enabled
+        - Windows VM created with hyperv panic device configured
+
+    Steps:
+        1. Trigger BSOD on Windows VM using NtRaiseHardError
+        2. Wait for GuestPanicked event on VMI
+
+    Expected:
+        - VMI emits GuestPanicked event when Windows crashes
+    """
     wait_for_guest_panicked_event(vm=windows_vm_with_panic_device)
