@@ -73,7 +73,7 @@ class ArchImages:
             WIN2k25_IMG="win_2k25_uefi.qcow2",
             WIN2k19_HA_IMG="win_2019_virtio.qcow2",
             WIN11_IMG="win_11.qcow2",
-            WIN11_WSL2_IMG="win_11_wsl2.qcow2",
+            WIN11_WSL2_IMG="win_11_wsl2_new.qcow2",
             WIN11_ISO_IMG="en-us_windows_11_business_editions_version_24h2_x64_dvd_59a1851e.iso",
             WIN19_RAW="win_2k19_uefi.raw",
             WIN2022_IMG="win_2022.qcow2",
