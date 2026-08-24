@@ -299,7 +299,7 @@ class VirtualMachineForTests(VirtualMachine):
         vm_affinity=None,
         annotations=None,
         label=None,
-        exclude_from_descheduler: bool | None = None,
+        exclude_from_descheduler: bool = False,
     ):
         """
         Virtual machine creation
@@ -382,9 +382,9 @@ class VirtualMachineForTests(VirtualMachine):
             vm_affinity (dict, optional): If affinity is specifies, obey all the affinity rules
             annotations (dict, optional): annotations to be added to the VM
             label (dict, optional): labels to be added to VM metadata (not the VMI template)
-            exclude_from_descheduler (bool | None, optional): controls descheduler exclusion annotation on VMI template.
-                True: always set. False: never set. None (default): auto-set when eviction_strategy is "None"
-                or "LiveMigrateIfPossible".
+            exclude_from_descheduler (bool, optional): if True, exclude the VM from the descheduler.
+                Non-migratable VMs (eviction_strategy "None" or "LiveMigrateIfPossible") are always
+                excluded. Defaults to False.
         """
         # Sets VM unique name - replaces "." with "-" in the name to handle valid values.
 
@@ -537,9 +537,6 @@ class VirtualMachineForTests(VirtualMachine):
         self._set_descheduler_exclusion()
 
     def _set_descheduler_exclusion(self) -> None:
-        if self.exclude_from_descheduler is False:
-            return
-
         effective_eviction_strategy = self.res["spec"]["template"]["spec"].get(EVICTIONSTRATEGY)
         if self.exclude_from_descheduler or effective_eviction_strategy in (ES_NONE, ES_LIVE_MIGRATE_IF_POSSIBLE):
             LOGGER.info(f"Setting descheduler exclusion annotation on VM {self.name}")
@@ -1305,7 +1302,7 @@ class VirtualMachineForTestsFromTemplate(VirtualMachineForTests):
         tpm_params=None,
         additional_labels=None,
         vm_affinity=None,
-        exclude_from_descheduler: bool | None = None,
+        exclude_from_descheduler: bool = False,
     ):
         """VM creation using common templates.
 
