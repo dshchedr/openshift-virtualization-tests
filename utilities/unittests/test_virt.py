@@ -17,7 +17,9 @@ from utilities.virt import VirtualMachineForTests
 PREFER_NO_EVICTION_ANNOTATION = "descheduler.alpha.kubernetes.io/prefer-no-eviction"
 
 
-def _build_vm_stub(exclude_from_descheduler=None, eviction_strategy=None):
+def _build_vm_stub(
+    exclude_from_descheduler: bool | None = None, eviction_strategy: str | None = None
+) -> VirtualMachineForTests:
     """Create a minimal VirtualMachineForTests stub with enough state for _set_descheduler_exclusion."""
     vm = VirtualMachineForTests.__new__(VirtualMachineForTests)
     vm.name = "test-vm"
@@ -33,32 +35,40 @@ class TestDeschedulerExclusion:
     def test_explicit_true_sets_annotation(self):
         vm = _build_vm_stub(exclude_from_descheduler=True)
         vm._set_descheduler_exclusion()
-        assert vm.res["spec"]["template"]["metadata"]["annotations"][PREFER_NO_EVICTION_ANNOTATION] == "true"
+        annotations = vm.res["spec"]["template"]["metadata"]["annotations"]
+        assert annotations[PREFER_NO_EVICTION_ANNOTATION] == "true", "Annotation not set when explicitly requested"
 
     def test_explicit_false_skips_annotation(self):
         vm = _build_vm_stub(exclude_from_descheduler=False, eviction_strategy=ES_NONE)
         vm._set_descheduler_exclusion()
-        assert PREFER_NO_EVICTION_ANNOTATION not in vm.res["spec"]["template"]["metadata"].get("annotations", {})
+        annotations = vm.res["spec"]["template"]["metadata"].get("annotations", {})
+        assert PREFER_NO_EVICTION_ANNOTATION not in annotations, "Annotation set despite explicit False"
 
     def test_auto_exclude_for_es_none(self):
         vm = _build_vm_stub(eviction_strategy=ES_NONE)
         vm._set_descheduler_exclusion()
-        assert vm.res["spec"]["template"]["metadata"]["annotations"][PREFER_NO_EVICTION_ANNOTATION] == "true"
+        annotations = vm.res["spec"]["template"]["metadata"]["annotations"]
+        assert annotations[PREFER_NO_EVICTION_ANNOTATION] == "true", "Annotation not auto-set for ES_NONE"
 
     def test_auto_exclude_for_es_live_migrate_if_possible(self):
         vm = _build_vm_stub(eviction_strategy=ES_LIVE_MIGRATE_IF_POSSIBLE)
         vm._set_descheduler_exclusion()
-        assert vm.res["spec"]["template"]["metadata"]["annotations"][PREFER_NO_EVICTION_ANNOTATION] == "true"
+        annotations = vm.res["spec"]["template"]["metadata"]["annotations"]
+        assert annotations[PREFER_NO_EVICTION_ANNOTATION] == "true", (
+            "Annotation not auto-set for ES_LIVE_MIGRATE_IF_POSSIBLE"
+        )
 
     def test_no_annotation_without_matching_eviction_strategy(self):
         vm = _build_vm_stub(eviction_strategy="LiveMigrate")
         vm._set_descheduler_exclusion()
-        assert PREFER_NO_EVICTION_ANNOTATION not in vm.res["spec"]["template"]["metadata"].get("annotations", {})
+        annotations = vm.res["spec"]["template"]["metadata"].get("annotations", {})
+        assert PREFER_NO_EVICTION_ANNOTATION not in annotations, "Annotation set for non-excluded eviction strategy"
 
     def test_no_annotation_when_no_eviction_strategy(self):
         vm = _build_vm_stub()
         vm._set_descheduler_exclusion()
-        assert PREFER_NO_EVICTION_ANNOTATION not in vm.res["spec"]["template"]["metadata"].get("annotations", {})
+        annotations = vm.res["spec"]["template"]["metadata"].get("annotations", {})
+        assert PREFER_NO_EVICTION_ANNOTATION not in annotations, "Annotation set when no eviction strategy specified"
 
 
 class TestVirtualMachineForTestsLabel:
